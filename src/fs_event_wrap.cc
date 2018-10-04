@@ -105,7 +105,7 @@ void FSEventWrap::Initialize(Local<Object> target,
   t->InstanceTemplate()->SetInternalFieldCount(1);
   t->SetClassName(fsevent_string);
 
-  AsyncWrap::AddWrapMethods(env, t);
+  t->Inherit(AsyncWrap::GetConstructorTemplate(env));
   env->SetProtoMethod(t, "start", Start);
   env->SetProtoMethod(t, "close", Close);
 
@@ -121,7 +121,7 @@ void FSEventWrap::Initialize(Local<Object> target,
       Local<FunctionTemplate>(),
       static_cast<PropertyAttribute>(ReadOnly | DontDelete | v8::DontEnum));
 
-  target->Set(fsevent_string, t->GetFunction());
+  target->Set(fsevent_string, t->GetFunction(context).ToLocalChecked());
 }
 
 

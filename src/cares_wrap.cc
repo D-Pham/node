@@ -2220,32 +2220,32 @@ void Initialize(Local<Object> target,
 
   Local<FunctionTemplate> aiw =
       BaseObject::MakeLazilyInitializedJSTemplate(env);
-  AsyncWrap::AddWrapMethods(env, aiw);
+  aiw->Inherit(AsyncWrap::GetConstructorTemplate(env));
   Local<String> addrInfoWrapString =
       FIXED_ONE_BYTE_STRING(env->isolate(), "GetAddrInfoReqWrap");
   aiw->SetClassName(addrInfoWrapString);
-  target->Set(addrInfoWrapString, aiw->GetFunction());
+  target->Set(addrInfoWrapString, aiw->GetFunction(context).ToLocalChecked());
 
   Local<FunctionTemplate> niw =
       BaseObject::MakeLazilyInitializedJSTemplate(env);
-  AsyncWrap::AddWrapMethods(env, niw);
+  niw->Inherit(AsyncWrap::GetConstructorTemplate(env));
   Local<String> nameInfoWrapString =
       FIXED_ONE_BYTE_STRING(env->isolate(), "GetNameInfoReqWrap");
   niw->SetClassName(nameInfoWrapString);
-  target->Set(nameInfoWrapString, niw->GetFunction());
+  target->Set(nameInfoWrapString, niw->GetFunction(context).ToLocalChecked());
 
   Local<FunctionTemplate> qrw =
       BaseObject::MakeLazilyInitializedJSTemplate(env);
-  AsyncWrap::AddWrapMethods(env, qrw);
+  qrw->Inherit(AsyncWrap::GetConstructorTemplate(env));
   Local<String> queryWrapString =
       FIXED_ONE_BYTE_STRING(env->isolate(), "QueryReqWrap");
   qrw->SetClassName(queryWrapString);
-  target->Set(queryWrapString, qrw->GetFunction());
+  target->Set(queryWrapString, qrw->GetFunction(context).ToLocalChecked());
 
   Local<FunctionTemplate> channel_wrap =
       env->NewFunctionTemplate(ChannelWrap::New);
   channel_wrap->InstanceTemplate()->SetInternalFieldCount(1);
-  AsyncWrap::AddWrapMethods(env, channel_wrap);
+  channel_wrap->Inherit(AsyncWrap::GetConstructorTemplate(env));
 
   env->SetProtoMethod(channel_wrap, "queryAny", Query<QueryAnyWrap>);
   env->SetProtoMethod(channel_wrap, "queryA", Query<QueryAWrap>);
@@ -2267,7 +2267,8 @@ void Initialize(Local<Object> target,
   Local<String> channelWrapString =
       FIXED_ONE_BYTE_STRING(env->isolate(), "ChannelWrap");
   channel_wrap->SetClassName(channelWrapString);
-  target->Set(channelWrapString, channel_wrap->GetFunction());
+  target->Set(channelWrapString,
+              channel_wrap->GetFunction(context).ToLocalChecked());
 }
 
 }  // anonymous namespace

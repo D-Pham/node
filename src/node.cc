@@ -72,7 +72,6 @@
 #include <errno.h>
 #include <fcntl.h>  // _O_RDWR
 #include <limits.h>  // PATH_MAX
-#include <locale.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -125,7 +124,6 @@ namespace node {
 using options_parser::kAllowedInEnvironment;
 using options_parser::kDisallowedInEnvironment;
 using v8::Array;
-using v8::ArrayBuffer;
 using v8::Boolean;
 using v8::Context;
 using v8::DEFAULT;
@@ -145,16 +143,13 @@ using v8::Maybe;
 using v8::MaybeLocal;
 using v8::Message;
 using v8::MicrotasksPolicy;
-using v8::Name;
 using v8::NamedPropertyHandlerConfiguration;
 using v8::NewStringType;
 using v8::None;
 using v8::Nothing;
 using v8::Null;
-using v8::Number;
 using v8::Object;
 using v8::ObjectTemplate;
-using v8::Promise;
 using v8::PropertyAttribute;
 using v8::ReadOnly;
 using v8::Script;
@@ -615,7 +610,7 @@ fail:
 
 
 void* ArrayBufferAllocator::Allocate(size_t size) {
-  if (zero_fill_field_ || zero_fill_all_buffers)
+  if (zero_fill_field_ || per_process_opts->zero_fill_all_buffers)
     return UncheckedCalloc(size);
   else
     return UncheckedMalloc(size);
@@ -1925,8 +1920,7 @@ void SetupProcessObject(Environment* env,
   }
 
   // --no-deprecation
-  // TODO(addaleax): Uncomment the commented part.
-  if (/*env->options()->*/no_deprecation) {
+  if (env->options()->no_deprecation) {
     READONLY_PROPERTY(process, "noDeprecation", True(env->isolate()));
   }
 
@@ -2266,6 +2260,12 @@ static int GetDebugSignalHandlerMappingName(DWORD pid, wchar_t* buf,
 static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   Environment* env = Environment::GetCurrent(args);
   Isolate* isolate = args.GetIsolate();
+
+  if (args.Length() != 1) {
+    env->ThrowError("Invalid number of arguments.");
+    return;
+  }
+
   HANDLE process = nullptr;
   HANDLE thread = nullptr;
   HANDLE mapping = nullptr;
@@ -2273,10 +2273,16 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   LPTHREAD_START_ROUTINE* handler = nullptr;
   DWORD pid = 0;
 
-  if (args.Length() != 1) {
-    env->ThrowError("Invalid number of arguments.");
-    goto out;
-  }
+  OnScopeLeave cleanup([&]() {
+    if (process != nullptr)
+      CloseHandle(process);
+    if (thread != nullptr)
+      CloseHandle(thread);
+    if (handler != nullptr)
+      UnmapViewOfFile(handler);
+    if (mapping != nullptr)
+      CloseHandle(mapping);
+  });
 
   CHECK(args[0]->IsNumber());
   pid = args[0].As<Integer>()->Value();
@@ -2289,14 +2295,14 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   if (process == nullptr) {
     isolate->ThrowException(
         WinapiErrnoException(isolate, GetLastError(), "OpenProcess"));
-    goto out;
+    return;
   }
 
   if (GetDebugSignalHandlerMappingName(pid,
                                        mapping_name,
                                        arraysize(mapping_name)) < 0) {
     env->ThrowErrnoException(errno, "sprintf");
-    goto out;
+    return;
   }
 
   mapping = OpenFileMappingW(FILE_MAP_READ, FALSE, mapping_name);
@@ -2304,7 +2310,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
     isolate->ThrowException(WinapiErrnoException(isolate,
                                              GetLastError(),
                                              "OpenFileMappingW"));
-    goto out;
+    return;
   }
 
   handler = reinterpret_cast<LPTHREAD_START_ROUTINE*>(
@@ -2316,7 +2322,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
   if (handler == nullptr || *handler == nullptr) {
     isolate->ThrowException(
         WinapiErrnoException(isolate, GetLastError(), "MapViewOfFile"));
-    goto out;
+    return;
   }
 
   thread = CreateRemoteThread(process,
@@ -2330,7 +2336,7 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
     isolate->ThrowException(WinapiErrnoException(isolate,
                                                  GetLastError(),
                                                  "CreateRemoteThread"));
-    goto out;
+    return;
   }
 
   // Wait for the thread to terminate
@@ -2338,18 +2344,8 @@ static void DebugProcess(const FunctionCallbackInfo<Value>& args) {
     isolate->ThrowException(WinapiErrnoException(isolate,
                                                  GetLastError(),
                                                  "WaitForSingleObject"));
-    goto out;
+    return;
   }
-
- out:
-  if (process != nullptr)
-    CloseHandle(process);
-  if (thread != nullptr)
-    CloseHandle(thread);
-  if (handler != nullptr)
-    UnmapViewOfFile(handler);
-  if (mapping != nullptr)
-    CloseHandle(mapping);
 }
 #endif  // _WIN32
 
@@ -2445,16 +2441,6 @@ inline void PlatformInit() {
 #endif  // _WIN32
 }
 
-// TODO(addaleax): Remove, both from the public API and in implementation.
-bool no_deprecation = false;
-#if HAVE_OPENSSL
-bool ssl_openssl_cert_store = false;
-#if NODE_FIPS_MODE
-bool enable_fips_crypto = false;
-bool force_fips_crypto = false;
-#endif
-#endif
-
 void ProcessArgv(std::vector<std::string>* args,
                  std::vector<std::string>* exec_args,
                  bool is_env) {
@@ -2538,17 +2524,6 @@ void ProcessArgv(std::vector<std::string>* args,
   if (v8_args_as_char_ptr.size() > 1) {
     exit(9);
   }
-
-  // TODO(addaleax): Remove.
-  zero_fill_all_buffers = per_process_opts->zero_fill_all_buffers;
-  no_deprecation = per_process_opts->per_isolate->per_env->no_deprecation;
-#if HAVE_OPENSSL
-  ssl_openssl_cert_store = per_process_opts->ssl_openssl_cert_store;
-#if NODE_FIPS_MODE
-  enable_fips_crypto = per_process_opts->enable_fips_crypto;
-  force_fips_crypto = per_process_opts->force_fips_crypto;
-#endif
-#endif
 }
 
 

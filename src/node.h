@@ -202,20 +202,6 @@ typedef intptr_t ssize_t;
 
 namespace node {
 
-// TODO(addaleax): Remove all of these.
-NODE_DEPRECATED("use command-line flags",
-                NODE_EXTERN extern bool no_deprecation);
-#if HAVE_OPENSSL
-NODE_DEPRECATED("use command-line flags",
-                NODE_EXTERN extern bool ssl_openssl_cert_store);
-# if NODE_FIPS_MODE
-NODE_DEPRECATED("use command-line flags",
-                NODE_EXTERN extern bool enable_fips_crypto);
-NODE_DEPRECATED("user command-line flags",
-                NODE_EXTERN extern bool force_fips_crypto);
-# endif
-#endif
-
 // TODO(addaleax): Officially deprecate this and replace it with something
 // better suited for a public embedder API.
 NODE_EXTERN int Start(int argc, char* argv[]);
@@ -366,9 +352,10 @@ inline void NODE_SET_METHOD(v8::Local<v8::Object> recv,
                             v8::FunctionCallback callback) {
   v8::Isolate* isolate = v8::Isolate::GetCurrent();
   v8::HandleScope handle_scope(isolate);
+  v8::Local<v8::Context> context = isolate->GetCurrentContext();
   v8::Local<v8::FunctionTemplate> t = v8::FunctionTemplate::New(isolate,
                                                                 callback);
-  v8::Local<v8::Function> fn = t->GetFunction();
+  v8::Local<v8::Function> fn = t->GetFunction(context).ToLocalChecked();
   v8::Local<v8::String> fn_name = v8::String::NewFromUtf8(isolate, name,
       v8::NewStringType::kInternalized).ToLocalChecked();
   fn->SetName(fn_name);
@@ -754,84 +741,84 @@ v8::MaybeLocal<v8::Value> MakeCallback(v8::Isolate* isolate,
  * `AsyncResource::MakeCallback()` is used, then all four callbacks will be
  * called automatically. */
 class AsyncResource {
-  public:
-    AsyncResource(v8::Isolate* isolate,
-                  v8::Local<v8::Object> resource,
-                  const char* name,
-                  async_id trigger_async_id = -1)
-        : isolate_(isolate),
-          resource_(isolate, resource) {
-      async_context_ = EmitAsyncInit(isolate, resource, name,
-                                     trigger_async_id);
-    }
+ public:
+  AsyncResource(v8::Isolate* isolate,
+                v8::Local<v8::Object> resource,
+                const char* name,
+                async_id trigger_async_id = -1)
+      : isolate_(isolate),
+        resource_(isolate, resource) {
+    async_context_ = EmitAsyncInit(isolate, resource, name,
+                                   trigger_async_id);
+  }
 
-    AsyncResource(v8::Isolate* isolate,
-                  v8::Local<v8::Object> resource,
-                  v8::Local<v8::String> name,
-                  async_id trigger_async_id = -1)
-        : isolate_(isolate),
-          resource_(isolate, resource) {
-      async_context_ = EmitAsyncInit(isolate, resource, name,
-                                     trigger_async_id);
-    }
+  AsyncResource(v8::Isolate* isolate,
+                v8::Local<v8::Object> resource,
+                v8::Local<v8::String> name,
+                async_id trigger_async_id = -1)
+      : isolate_(isolate),
+        resource_(isolate, resource) {
+    async_context_ = EmitAsyncInit(isolate, resource, name,
+                                   trigger_async_id);
+  }
 
-    virtual ~AsyncResource() {
-      EmitAsyncDestroy(isolate_, async_context_);
-      resource_.Reset();
-    }
+  virtual ~AsyncResource() {
+    EmitAsyncDestroy(isolate_, async_context_);
+    resource_.Reset();
+  }
 
-    v8::MaybeLocal<v8::Value> MakeCallback(
-        v8::Local<v8::Function> callback,
-        int argc,
-        v8::Local<v8::Value>* argv) {
-      return node::MakeCallback(isolate_, get_resource(),
-                                callback, argc, argv,
-                                async_context_);
-    }
+  v8::MaybeLocal<v8::Value> MakeCallback(
+      v8::Local<v8::Function> callback,
+      int argc,
+      v8::Local<v8::Value>* argv) {
+    return node::MakeCallback(isolate_, get_resource(),
+                              callback, argc, argv,
+                              async_context_);
+  }
 
-    v8::MaybeLocal<v8::Value> MakeCallback(
-        const char* method,
-        int argc,
-        v8::Local<v8::Value>* argv) {
-      return node::MakeCallback(isolate_, get_resource(),
-                                method, argc, argv,
-                                async_context_);
-    }
+  v8::MaybeLocal<v8::Value> MakeCallback(
+      const char* method,
+      int argc,
+      v8::Local<v8::Value>* argv) {
+    return node::MakeCallback(isolate_, get_resource(),
+                              method, argc, argv,
+                              async_context_);
+  }
 
-    v8::MaybeLocal<v8::Value> MakeCallback(
-        v8::Local<v8::String> symbol,
-        int argc,
-        v8::Local<v8::Value>* argv) {
-      return node::MakeCallback(isolate_, get_resource(),
-                                symbol, argc, argv,
-                                async_context_);
-    }
+  v8::MaybeLocal<v8::Value> MakeCallback(
+      v8::Local<v8::String> symbol,
+      int argc,
+      v8::Local<v8::Value>* argv) {
+    return node::MakeCallback(isolate_, get_resource(),
+                              symbol, argc, argv,
+                              async_context_);
+  }
 
-    v8::Local<v8::Object> get_resource() {
-      return resource_.Get(isolate_);
-    }
+  v8::Local<v8::Object> get_resource() {
+    return resource_.Get(isolate_);
+  }
 
-    async_id get_async_id() const {
-      return async_context_.async_id;
-    }
+  async_id get_async_id() const {
+    return async_context_.async_id;
+  }
 
-    async_id get_trigger_async_id() const {
-      return async_context_.trigger_async_id;
-    }
+  async_id get_trigger_async_id() const {
+    return async_context_.trigger_async_id;
+  }
 
-  protected:
-    class CallbackScope : public node::CallbackScope {
-     public:
-      explicit CallbackScope(AsyncResource* res)
-        : node::CallbackScope(res->isolate_,
-                              res->resource_.Get(res->isolate_),
-                              res->async_context_) {}
-    };
+ protected:
+  class CallbackScope : public node::CallbackScope {
+   public:
+    explicit CallbackScope(AsyncResource* res)
+      : node::CallbackScope(res->isolate_,
+                            res->resource_.Get(res->isolate_),
+                            res->async_context_) {}
+  };
 
-  private:
-    v8::Isolate* isolate_;
-    v8::Persistent<v8::Object> resource_;
-    async_context async_context_;
+ private:
+  v8::Isolate* isolate_;
+  v8::Persistent<v8::Object> resource_;
+  async_context async_context_;
 };
 
 }  // namespace node

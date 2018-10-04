@@ -482,8 +482,8 @@ void InitWorker(Local<Object> target,
     Local<FunctionTemplate> w = env->NewFunctionTemplate(Worker::New);
 
     w->InstanceTemplate()->SetInternalFieldCount(1);
+    w->Inherit(AsyncWrap::GetConstructorTemplate(env));
 
-    AsyncWrap::AddWrapMethods(env, w);
     env->SetProtoMethod(w, "startThread", Worker::StartThread);
     env->SetProtoMethod(w, "stopThread", Worker::StopThread);
     env->SetProtoMethod(w, "ref", Worker::Ref);
@@ -492,7 +492,7 @@ void InitWorker(Local<Object> target,
     Local<String> workerString =
         FIXED_ONE_BYTE_STRING(env->isolate(), "Worker");
     w->SetClassName(workerString);
-    target->Set(workerString, w->GetFunction());
+    target->Set(workerString, w->GetFunction(env->context()).ToLocalChecked());
   }
 
   env->SetMethod(target, "getEnvMessagePort", GetEnvMessagePort);

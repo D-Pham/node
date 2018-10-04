@@ -49,8 +49,8 @@ When looking for support, please first search for your question in these venues:
 * [Node.js Help][]
 * [Open or closed issues in the Node.js GitHub organization](https://github.com/issues?utf8=%E2%9C%93&q=sort%3Aupdated-desc+org%3Anodejs+is%3Aissue)
 
-If you didn't find an answer in one of the official resources above, you can
-search these unofficial resources:
+If you didn't find an answer in the resources above, try these unofficial
+resources:
 
 * [Questions tagged 'node.js' on StackOverflow][]
 * [#node.js channel on chat.freenode.net][]. See <http://nodeirc.info/> for more
@@ -59,45 +59,39 @@ search these unofficial resources:
 * [Node.js Slack Community](https://node-js.slack.com/): Visit
   [nodeslackers.com](http://www.nodeslackers.com/) to register.
 
-GitHub issues are meant for tracking enhancements and bugs, not general support.
+GitHub issues are for tracking enhancements and bugs, not general support.
 
-Remember, libre != gratis; the open source license grants you the freedom to use
-and modify, but not commitments of other people's time. Please be respectful,
-and set your expectations accordingly.
+The open source license grants you the freedom to use Node.js. It does not
+guarantee commitments of other people's time. Please be respectful and manage
+your expectations.
 
-## Release Types
+## Release Types 
 
-The Node.js project maintains multiple types of releases:
-
-* **Current**: Released from active development branches of this repository,
-  versioned by [SemVer](https://semver.org) and signed by a member of the
-  [Release Team](#release-team).
-  Code for Current releases is organized in this repository by major version
-  number. For example: [v4.x](https://github.com/nodejs/node/tree/v4.x).
-  The major version number of Current releases will increment every 6 months
-  allowing for breaking changes to be introduced. This happens in April and
-  October every year. Current release lines beginning in October each year have
-  a maximum support life of 8 months. Current release lines beginning in April
-  each year will convert to LTS (see below) after 6 months and receive further
-  support for 30 months.
+* **Current**: Under active development. Code for the Current release is in the
+  branch for its major version number (for example,
+  [v10.x](https://github.com/nodejs/node/tree/v10.x)). Node.js releases a new
+  major version every 6 months, allowing for breaking changes. This happens in
+  April and October every year. Releases appearing each October have a support
+  life of 8 months. Releases appearing each April convert to LTS (see below)
+  each October.
 * **LTS**: Releases that receive Long-term Support, with a focus on stability
-  and security. Every second Current release line (major version) will become an
-  LTS line and receive 18 months of _Active LTS_ support and a further 12
-  months of _Maintenance_. LTS release lines are given alphabetically
-  ordered codenames, beginning with v4 Argon. LTS releases are less frequent
-  and will attempt to maintain consistent major and minor version numbers,
-  only incrementing patch version numbers. There are no breaking changes or
-  feature additions, except in some special circumstances.
-* **Nightly**: Versions of code in this repository on the current Current
-  branch, automatically built every 24-hours where changes exist. Use with
-  caution.
+  and security. Every even-numbered major version will become an LTS release.
+  LTS releases receive 18 months of _Active LTS_ support and a further 12 months
+  of _Maintenance_. LTS release lines have alphabetically-ordered codenames,
+  beginning with v4 Argon. There are no breaking changes or feature additions,
+  except in some special circumstances.
+* **Nightly**: Code from the Current branch built every 24-hours when there are
+  changes. Use with caution.
 
-More information can be found in the [LTS README](https://github.com/nodejs/LTS/).
+Current and LTS releases follow [Semantic Versioning](https://semver.org). A
+member of the [Release Team](#release-team) signs each Current and LTS release.
+For more information, see the
+[Release README](https://github.com/nodejs/Release).
 
 ### Download
 
 Binaries, installers, and source tarballs are available at
-<https://nodejs.org>.
+<https://nodejs.org/en/download/>.
 
 #### Current and LTS Releases
 **Current** and **LTS** releases are available at
@@ -251,8 +245,6 @@ For more information about the governance of the Node.js project, see
 **Jeremiah Senkpiel** &lt;fishrock123@rocketmail.com&gt;
 * [gabrielschulhof](https://github.com/gabrielschulhof) -
 **Gabriel Schulhof** &lt;gabriel.schulhof@intel.com&gt;
-* [gibfahn](https://github.com/gibfahn) -
-**Gibson Fahnestock** &lt;gibfahn@gmail.com&gt; (he/him)
 * [jasnell](https://github.com/jasnell) -
 **James M Snell** &lt;jasnell@gmail.com&gt; (he/him)
 * [joyeecheung](https://github.com/joyeecheung) -
@@ -284,6 +276,8 @@ For more information about the governance of the Node.js project, see
 **Chris Dickinson** &lt;christopher.s.dickinson@gmail.com&gt;
 * [evanlucas](https://github.com/evanlucas) -
 **Evan Lucas** &lt;evanlucas@me.com&gt; (he/him)
+* [gibfahn](https://github.com/gibfahn) -
+**Gibson Fahnestock** &lt;gibfahn@gmail.com&gt; (he/him)
 * [indutny](https://github.com/indutny) -
 **Fedor Indutny** &lt;fedor.indutny@gmail.com&gt;
 * [isaacs](https://github.com/isaacs) -

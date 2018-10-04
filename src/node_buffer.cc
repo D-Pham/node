@@ -33,17 +33,17 @@
 #include <string.h>
 #include <limits.h>
 
-#define BUFFER_ID 0xB0E4
-
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
 #define THROW_AND_RETURN_UNLESS_BUFFER(env, obj)                            \
-  THROW_AND_RETURN_IF_NOT_BUFFER(env, obj, "argument")
+  THROW_AND_RETURN_IF_NOT_BUFFER(env, obj, "argument")                      \
 
 #define THROW_AND_RETURN_IF_OOB(r)                                          \
   do {                                                                      \
-    if (!(r)) return node::THROW_ERR_INDEX_OUT_OF_RANGE(env);               \
-  } while (0)
+    if (!(r))                                                               \
+      return node::THROW_ERR_OUT_OF_RANGE_WITH_TEXT(env,                    \
+                                                    "Index out of range");  \
+  } while (0)                                                               \
 
 #define SLICE_START_END(start_arg, end_arg, end_max)                        \
   size_t start;                                                             \
@@ -56,14 +56,12 @@
 
 namespace node {
 
-// if true, all Buffer and SlowBuffer instances will automatically zero-fill
-bool zero_fill_all_buffers = false;
-
 namespace {
 
 inline void* BufferMalloc(size_t length) {
-  return zero_fill_all_buffers ? node::UncheckedCalloc(length) :
-                                 node::UncheckedMalloc(length);
+  return per_process_opts->zero_fill_all_buffers ?
+      node::UncheckedCalloc(length) :
+      node::UncheckedMalloc(length);
 }
 
 }  // namespace
@@ -144,7 +142,6 @@ CallbackInfo::CallbackInfo(Isolate* isolate,
     CHECK_NOT_NULL(data_);
 
   persistent_.SetWeak(this, WeakCallback, v8::WeakCallbackType::kParameter);
-  persistent_.SetWrapperClassId(BUFFER_ID);
   isolate->AdjustAmountOfExternalAllocatedMemory(sizeof(*this));
 }
 
@@ -497,7 +494,8 @@ void Copy(const FunctionCallbackInfo<Value> &args) {
     return args.GetReturnValue().Set(0);
 
   if (source_start > ts_obj_length)
-    return node::THROW_ERR_INDEX_OUT_OF_RANGE(env);
+    return node::THROW_ERR_OUT_OF_RANGE_WITH_TEXT(
+        env, "The value of \"sourceStart\" is out of range.");
 
   if (source_end - source_start > target_length - target_start)
     source_end = source_start + target_length - target_start;
@@ -687,9 +685,11 @@ void CompareOffset(const FunctionCallbackInfo<Value> &args) {
   THROW_AND_RETURN_IF_OOB(ParseArrayIndex(args[5], ts_obj_length, &source_end));
 
   if (source_start > ts_obj_length)
-    return node::THROW_ERR_INDEX_OUT_OF_RANGE(env);
+    return node::THROW_ERR_OUT_OF_RANGE_WITH_TEXT(
+        env, "The value of \"sourceStart\" is out of range.");
   if (target_start > target_length)
-    return node::THROW_ERR_INDEX_OUT_OF_RANGE(env);
+    return node::THROW_ERR_OUT_OF_RANGE_WITH_TEXT(
+        env, "The value of \"targetStart\" is out of range.");
 
   CHECK_LE(source_start, source_end);
   CHECK_LE(target_start, target_end);

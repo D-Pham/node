@@ -891,7 +891,7 @@ void TLSWrap::Initialize(Local<Object> target,
       Local<FunctionTemplate>(),
       static_cast<PropertyAttribute>(ReadOnly | DontDelete));
 
-  AsyncWrap::AddWrapMethods(env, t, AsyncWrap::kFlagHasReset);
+  t->Inherit(AsyncWrap::GetConstructorTemplate(env));
   env->SetProtoMethod(t, "receive", Receive);
   env->SetProtoMethod(t, "start", Start);
   env->SetProtoMethod(t, "setVerifyMode", SetVerifyMode);
@@ -905,9 +905,10 @@ void TLSWrap::Initialize(Local<Object> target,
   env->SetProtoMethod(t, "getServername", GetServername);
   env->SetProtoMethod(t, "setServername", SetServername);
 
-  env->set_tls_wrap_constructor_function(t->GetFunction());
+  env->set_tls_wrap_constructor_function(
+      t->GetFunction(env->context()).ToLocalChecked());
 
-  target->Set(tlsWrapString, t->GetFunction());
+  target->Set(tlsWrapString, t->GetFunction(env->context()).ToLocalChecked());
 }
 
 }  // namespace node
